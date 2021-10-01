@@ -50,9 +50,11 @@ int main(){
 #define TIME_BUFFER 20
 	char* time_string = calloc(sizeof(char), TIME_BUFFER);
 	time_t time_time = (long long int) time_json->valuedouble;
-	struct tm* time_struct = localtime(&time_time); //TODO: Convert to locale-preferred time
+	struct tm* time_struct = localtime(&time_time);
 	
-	printf("Is Eric wearing shorts (as of %d-%d-%d)?\n%s\n", 
-			time_struct->tm_year+1900, time_struct->tm_mon, time_struct->tm_mday,
+	strftime(time_string, TIME_BUFFER, "%x", time_struct);
+
+	printf("Is Eric wearing shorts (as of %s):\n%s\n", //TODO: Handle calendar images
+			time_string,
 			answer_json->valuestring); //TODO: Make it prettier. Needs some kind of logic
 }
