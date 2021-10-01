@@ -1,4 +1,4 @@
-CFLAGS := $(shell curl-config --cflags)
+CFLAGS := $(shell curl-config --cflags) -g -Wall -Wextra
 LDFLAGS := $(shell curl-config --libs) -lcjson 
 
 all: shorts-status
