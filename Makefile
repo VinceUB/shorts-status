@@ -1,10 +1,19 @@
 CFLAGS := $(shell curl-config --cflags) -g -Wall -Wextra
 LDFLAGS := $(shell curl-config --libs) -lcjson 
 
-pam_shorts.so: main.c #TODO: Clean this shit up
-	gcc -c -o main.o $^ ${CFLAGS} -DPAM_SUPPORT -fPIC
-	gcc -shared -o $@ main.o ${LDFLAGS}
-	rm main.o
+SRCS := src/main.c
+OBJS := $(patsubst src/%.c,obj/%.o,${SRCS})
 
-shorts-status: main.c
-	gcc -o $@ $^ ${CFLAGS} ${LDFLAGS}
+pam_shorts.so: CFLAGS += -DPAM_SUPPORT -fPIC
+
+obj/%.o: src/%.c | obj
+	gcc -c -o $@ $^ ${CFLAGS}
+
+pam_shorts.so: ${OBJS}
+	gcc -shared -o $@ $^ ${LDFLAGS}
+
+shorts: ${OBJS}
+	gcc -o $@ $^ ${LDFLAGS}
+
+obj:
+	mkdir obj
