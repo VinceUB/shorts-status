@@ -100,6 +100,14 @@ int print_status(){
 	return EXIT_SUCCESS;
 }
 
+#ifdef PAM_SUPPORT
+#include <security/pam_modules.h>
+int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv){
+	print_status();
+	return PAM_SUCCESS;
+}
+#else
 int main(){
 	return print_status();
 }
+#endif
