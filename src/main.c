@@ -16,9 +16,11 @@ struct post_info {
 	bool		isCalendar;
 };
 
-cJSON* fetch_posts(int amount){	
+cJSON* fetch_posts(int amount){	//Returns NULL on fail
 	char* output_string;
 	size_t output_string_size; //We don't use this, but open_memstream segfaults without it
+	char error_string[CURL_ERROR_SIZE];
+	error_string[0] = 0;
 
 	CURL* curl;
 	curl_global_init(
@@ -39,12 +41,24 @@ cJSON* fetch_posts(int amount){
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, PLATFORM ":net.ultrabanana.eric:v0.0.1 (by /u/vkb123)");
 
 	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1);
+	curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, error_string);
 
 	FILE* output_fd = open_memstream(&output_string, &output_string_size);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, output_fd);
 
-	curl_easy_perform(curl);
+	CURLcode res;
+	res = curl_easy_perform(curl);
 	free(curl);
+	if(res != CURLE_OK) {
+#ifndef PAM_SUPPORT
+		fprintf(stderr, "Libcurl had an error (code %d):\n", res);
+		if(strlen(error_string)>0){
+			fprintf(stderr, "%s\n", error_string);
+		}
+#endif
+		return NULL;
+	}
+
 	fflush(output_fd);
 	
 	cJSON* json = cJSON_Parse(output_string);
@@ -84,6 +98,8 @@ int print_status(){
 	int i = 0;
 	do{
 		post_json = fetch_posts(i+1);
+		if(post_json==NULL)
+			return EXIT_FAILURE;
 		post = extract_data(post_json, i);
 		i++;
 	} while(post.isCalendar);
@@ -103,8 +119,11 @@ int print_status(){
 #ifdef PAM_SUPPORT
 #include <security/pam_modules.h>
 int pam_sm_open_session(pam_handle_t *pamh, int flags, int argc, const char **argv){
-	print_status();
-	return PAM_SUCCESS;
+	if(print_status()==EXIT_SUCCESS){
+		return PAM_SUCCESS;
+	} else {
+		return PAM_SESSION_ERR;
+	}
 }
 #else
 int main(){
